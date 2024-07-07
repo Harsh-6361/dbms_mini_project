@@ -45,11 +45,11 @@ function calculateRemainingTime($depTime) {
     $depTimestamp = strtotime($depTime);
     $remainingSeconds = $depTimestamp - $currentTime;
     if ($remainingSeconds < 0) {
-        return "Completed";
+        return [ "time" => "Completed", "completed" => true ];
     } else {
         $hours = floor($remainingSeconds / 3600);
         $minutes = floor(($remainingSeconds % 3600) / 60);
-        return sprintf("%02d:%02d:00", $hours, $minutes);
+        return [ "time" => sprintf("%02d:%02d:00", $hours, $minutes), "completed" => false ];
     }
 }
 
@@ -205,8 +205,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["cancel_booking"])) {
         <div class="cards-container">
             <?php while ($row = $result_bookings->fetch_assoc()) : ?>
                 <?php
-                    $remainingTime = calculateRemainingTime($row['Dep_Time']);
-                    $isCompleted = ($remainingTime === "Completed");
+                    $timeData = calculateRemainingTime($row['Dep_Time']);
+                    $remainingTime = $timeData['time'];
+                    $isCompleted = $timeData['completed'];
                 ?>
                 <div class="card <?php echo $isCompleted ? 'completed' : ''; ?>">
                     <h3>Booking ID: <?php echo htmlspecialchars($row['Booking_ID']); ?></h3>
@@ -229,10 +230,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["cancel_booking"])) {
                         <p><strong>Passenger Age:</strong> <?php echo htmlspecialchars($row['Passenger_Age']); ?></p>
                     <?php endif; ?>
                     <!-- Cancel Button -->
-                    <form method="post" action="<?php echo $_SERVER['PHP_SELF']; ?>" class="cancel-form">
-                        <input type="hidden" name="booking_id" value="<?php echo $row['Booking_ID']; ?>">
-                        <button type="submit" name="cancel_booking" class="cancel-button">Cancel Booking</button>
-                    </form>
+                    <?php if (!$isCompleted) : ?>
+                        <form method="post" action="<?php echo $_SERVER['PHP_SELF']; ?>" class="cancel-form">
+                            <input type="hidden" name="booking_id" value="<?php echo $row['Booking_ID']; ?>">
+                            <button type="submit" name="cancel_booking" class="cancel-button">Cancel Booking</button>
+                        </form>
+                    <?php endif; ?>
                 </div>
             <?php endwhile; ?>
         </div>
@@ -240,6 +243,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["cancel_booking"])) {
 
 </body>
 </html>
+
 
 <?php
 // Close database connection
